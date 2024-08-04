@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     hash::Hash,
     sync::{Arc, Mutex},
+    time::{self, Duration, Instant},
 };
 
 use bytes::{Buf, BufMut};
@@ -17,8 +18,14 @@ enum RedisCommands {
     Get(String),
 }
 
+struct RedisEntry {
+    value: String,
+    stored: Instant,
+    expirey: i32,
+}
+
 struct RedisDB {
-    instance: Arc<Mutex<HashMap<String, String>>>,
+    instance: Arc<Mutex<HashMap<String, RedisEntry>>>,
 }
 
 #[tokio::main]
@@ -78,17 +85,35 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
             format!("${}\r\n{}\r\n", command[4].len(), command[4])
         }
         "set" => {
+            let px = if command.len() > 9 {
+                command[10].parse().unwrap()
+            } else {
+                -1
+            };
+
+            let entry = RedisEntry {
+                value: command[6].to_string(),
+                stored: Instant::now(),
+                expirey: px,
+            };
             db.instance
                 .lock()
                 .unwrap()
-                .insert(command[4].to_string(), command[6].to_string());
+                .insert(command[4].to_string(), entry);
             "+OK\r\n".to_string()
         }
         "get" => {
-            let db_lock = db.instance.lock().unwrap();
-            let value = match db_lock.get(command[4]) {
-                Some(val) => val,
-                None => "",
+            let mut db_lock = db.instance.lock().unwrap();
+            let value: String;
+            match db_lock.get(command[4]) {
+                Some(val) => {
+                    if Instant::now() - val.stored >= Duration::new(0, 0) {
+                        let _ = db_lock.remove(command[4]);
+                        return "$-1\r\n".to_string() 
+                    }
+                    value = val.value.clone()
+                },
+                None => return "$-1\r\n".to_string(),
             };
             format!("${}\r\n{}\r\n", value.len(), value)
         }
