@@ -56,7 +56,7 @@ async fn main() {
                             Err(_) => panic!("failed to parse input"),
                         };
 
-                        let command: Vec<&str> = command.trim().split("\\r\\n").collect();
+                        let command: Vec<&str> = command.trim().split("\r\n").collect();
 
                         let response = parser(command, &mut db_clone);
 
