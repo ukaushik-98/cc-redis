@@ -63,7 +63,7 @@ async fn main() {
                             Err(_) => panic!("failed to parse input"),
                         };
 
-                        let command: Vec<&str> = command.trim().split("\r\n").collect();
+                        let command: Vec<&str> = command.trim().split("\\r\\n").collect();
 
                         let response = parser(command, &mut db_clone);
 
@@ -96,10 +96,12 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
                 stored: Instant::now(),
                 expirey: px,
             };
+
             db.instance
                 .lock()
                 .unwrap()
                 .insert(command[4].to_string(), entry);
+            
             "+OK\r\n".to_string()
         }
         "get" => {
@@ -107,7 +109,8 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
             let value: String;
             match db_lock.get(command[4]) {
                 Some(val) => {
-                    if Instant::now() - val.stored >= Duration::from_millis(val.expirey.try_into().unwrap()) {
+                    let expirey: i32 = val.expirey.try_into().unwrap();
+                    if expirey != -1 && Instant::now() - val.stored >= Duration::from_millis(expirey.try_into().unwrap()) {
                         let _ = db_lock.remove(command[4]);
                         return "$-1\r\n".to_string() 
                     }
