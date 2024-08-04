@@ -107,7 +107,7 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
             let value: String;
             match db_lock.get(command[4]) {
                 Some(val) => {
-                    if Instant::now() - val.stored >= Duration::new(0, 0) {
+                    if Instant::now() - val.stored >= Duration::from_millis(val.expirey.try_into().unwrap()) {
                         let _ = db_lock.remove(command[4]);
                         return "$-1\r\n".to_string() 
                     }
