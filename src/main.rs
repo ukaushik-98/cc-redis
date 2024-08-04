@@ -14,8 +14,14 @@ async fn main() {
                 println!("accepted new connection");
                 tokio::spawn(async move {
                     let mut buf: Vec<u8> = vec![255];
-                    let read_stream = stream.read(&mut buf).await;
-                    let _ = stream.write(b"+PONG\r\n").await;
+                    loop {
+                        let read_stream = stream.read(&mut buf).await.unwrap();
+                        if read_stream == 0 {
+                            println!("socket closed!");
+                            break;
+                        }
+                        let _ = stream.write(b"+PONG\r\n").await;
+                    }
                 });
             }
             Err(e) => {
