@@ -85,8 +85,8 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
             format!("${}\r\n{}\r\n", command[4].len(), command[4])
         }
         "set" => {
-            let px = if command.len() > 9 {
-                command[10].parse().unwrap()
+            let px = if command.len() == 9 {
+                command[8].parse().unwrap()
             } else {
                 -1
             };
@@ -101,7 +101,7 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
                 .lock()
                 .unwrap()
                 .insert(command[4].to_string(), entry);
-            
+
             "+OK\r\n".to_string()
         }
         "get" => {
@@ -110,12 +110,15 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
             match db_lock.get(command[4]) {
                 Some(val) => {
                     let expirey: i32 = val.expirey.try_into().unwrap();
-                    if expirey != -1 && Instant::now() - val.stored >= Duration::from_millis(expirey.try_into().unwrap()) {
+                    if expirey != -1
+                        && Instant::now() - val.stored
+                            >= Duration::from_millis(expirey.try_into().unwrap())
+                    {
                         let _ = db_lock.remove(command[4]);
-                        return "$-1\r\n".to_string() 
+                        return "$-1\r\n".to_string();
                     }
                     value = val.value.clone()
-                },
+                }
                 None => return "$-1\r\n".to_string(),
             };
             format!("${}\r\n{}\r\n", value.len(), value)
