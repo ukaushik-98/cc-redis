@@ -15,7 +15,7 @@ async fn main() {
                 tokio::spawn(async move {
                     let mut buf: Vec<u8> = vec![255];
                     loop {
-                        let read_stream = stream.read(&mut buf).await.unwrap();
+                        let read_stream = stream.read_buf(&mut buf).await.unwrap();
                         if read_stream == 0 {
                             println!("socket closed!");
                             break;
