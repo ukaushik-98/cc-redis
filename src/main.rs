@@ -28,7 +28,7 @@ struct RedisEntry {
 
 struct RedisDB {
     instance: Arc<Mutex<HashMap<String, RedisEntry>>>,
-    status: String
+    status: Option<String>
 }
 
 #[derive(Parser, Debug)]
@@ -50,11 +50,11 @@ async fn main() {
     let args = Args::parse();
 
     let listener = TcpListener::bind(format!("127.0.0.1:{}", args.port)).await.unwrap();
-    let replica = determine_replica(args.replicaof);
+;
 
     let db = RedisDB {
         instance: Arc::new(Mutex::new(HashMap::new())),
-        status: replica.clone()
+        status: args.replicaof.clone()
     };
 
     loop {
@@ -64,7 +64,7 @@ async fn main() {
 
                 let mut db_clone = RedisDB {
                     instance: db.instance.clone(),
-                    status: replica.clone()
+                    status: args.replicaof.clone()
                 };
 
                 tokio::spawn(async move {
@@ -83,7 +83,7 @@ async fn main() {
                             Err(_) => panic!("failed to parse input"),
                         };
 
-                        let command: Vec<&str> = command.trim().split("\r\n").collect();
+                        let command: Vec<&str> = command.trim().split("\\r\\n").collect();
 
                         let response = parser(command, &mut db_clone);
 
@@ -95,13 +95,6 @@ async fn main() {
                 println!("error: {}", e);
             }
         }
-    }
-}
-
-fn determine_replica(replica: Option<String>) -> String {
-    match replica {
-        Some(_) => "follower".to_string(),
-        None => "master".to_string(),
     }
 }
 
@@ -156,7 +149,16 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
             format!("${}\r\n{}\r\n", value.len(), value)
         },
         "info" => {
-            let value = format!("role:{}", "master");
+            let value = match &db.status {
+                Some(val) => {
+                    println!("REPLICAOF: {}", val);
+                    "role:follower".to_string()
+                },
+                None => {
+                    println!("REPLICAOF: NONE");
+                    "role:master".to_string()
+                },
+            };
             format!("${}\r\n{}\r\n", value.len(), value)
         },
         _ => panic!("unrecognized command"),
