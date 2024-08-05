@@ -113,6 +113,8 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
                 expirey: px,
             };
 
+            println!("REDIS ENTRY: {:?}", entry);
+
             db.instance
                 .lock()
                 .unwrap()
