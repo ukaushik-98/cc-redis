@@ -143,7 +143,11 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
                 None => return "$-1\r\n".to_string(),
             };
             format!("${}\r\n{}\r\n", value.len(), value)
-        }
+        },
+        "info" => {
+            let value = format!("role:{}", "master");
+            format!("${}\r\n{}\r\n", value.len(), value)
+        },
         _ => panic!("unrecognized command"),
     }
 }
