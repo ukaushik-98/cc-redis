@@ -50,8 +50,7 @@ async fn main() {
     let args = Args::parse();
 
     let listener = TcpListener::bind(format!("127.0.0.1:{}", args.port)).await.unwrap();
-;
-
+    
     let db = RedisDB {
         instance: Arc::new(Mutex::new(HashMap::new())),
         status: args.replicaof.clone()
