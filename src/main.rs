@@ -1,8 +1,5 @@
 use std::{
-    collections::HashMap,
-    hash::Hash,
-    sync::{Arc, Mutex},
-    time::{self, Duration, Instant},
+    collections::HashMap, fmt::format, hash::Hash, sync::{Arc, Mutex}, time::{self, Duration, Instant}
 };
 
 use bytes::{Buf, BufMut};
@@ -28,7 +25,9 @@ struct RedisEntry {
 
 struct RedisDB {
     instance: Arc<Mutex<HashMap<String, RedisEntry>>>,
-    status: Option<String>
+    status: Option<String>,
+    replication_id: String,
+    offset: String
 }
 
 #[derive(Parser, Debug)]
@@ -50,10 +49,12 @@ async fn main() {
     let args = Args::parse();
 
     let listener = TcpListener::bind(format!("127.0.0.1:{}", args.port)).await.unwrap();
-    
+
     let db = RedisDB {
         instance: Arc::new(Mutex::new(HashMap::new())),
-        status: args.replicaof.clone()
+        status: args.replicaof.clone(),
+        replication_id: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
+        offset: "0".to_string()
     };
 
     loop {
@@ -63,7 +64,9 @@ async fn main() {
 
                 let mut db_clone = RedisDB {
                     instance: db.instance.clone(),
-                    status: args.replicaof.clone()
+                    status: args.replicaof.clone(),
+                    replication_id: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
+                    offset: "0".to_string()
                 };
 
                 tokio::spawn(async move {
@@ -148,14 +151,15 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
             format!("${}\r\n{}\r\n", value.len(), value)
         },
         "info" => {
-            let value = match &db.status {
+            let role = match &db.status {
                 Some(_) => {
-                    "role:slave".to_string()
+                    "role:slave"
                 },
                 None => {
-                    "role:master".to_string()
+                    "role:master"
                 },
             };
+            let value = format!("role:{}:master_replid:{}:master_repl_offset:{}", role, db.replication_id, db.offset);
             format!("${}\r\n{}\r\n", value.len(), value)
         },
         _ => panic!("unrecognized command"),
