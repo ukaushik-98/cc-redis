@@ -101,6 +101,7 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
             format!("${}\r\n{}\r\n", command[4].len(), command[4])
         }
         "set" => {
+            println!("command: {:?}", command);
             let px = if command.len() == 9 {
                 command[8].parse().unwrap()
             } else {
