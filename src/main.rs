@@ -150,12 +150,10 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
         },
         "info" => {
             let value = match &db.status {
-                Some(val) => {
-                    println!("REPLICAOF: {}", val);
-                    "role:follower".to_string()
+                Some(_) => {
+                    "role:slave".to_string()
                 },
                 None => {
-                    println!("REPLICAOF: NONE");
                     "role:master".to_string()
                 },
             };
