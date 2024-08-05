@@ -28,6 +28,7 @@ struct RedisEntry {
 
 struct RedisDB {
     instance: Arc<Mutex<HashMap<String, RedisEntry>>>,
+    status: String
 }
 
 #[derive(Parser, Debug)]
@@ -38,8 +39,8 @@ struct Args {
     port: String,
 
     /// Number of times to greet
-    #[arg(short, long, default_value_t = format!("master"))]
-    replicaof: String,
+    #[arg(short, long)]
+    replicaof: Option<String>,
 }
 
 #[tokio::main]
@@ -49,9 +50,11 @@ async fn main() {
     let args = Args::parse();
 
     let listener = TcpListener::bind(format!("127.0.0.1:{}", args.port)).await.unwrap();
+    let replica = determine_replica(args.replicaof);
 
     let db = RedisDB {
         instance: Arc::new(Mutex::new(HashMap::new())),
+        status: replica.clone()
     };
 
     loop {
@@ -61,6 +64,7 @@ async fn main() {
 
                 let mut db_clone = RedisDB {
                     instance: db.instance.clone(),
+                    status: replica.clone()
                 };
 
                 tokio::spawn(async move {
@@ -91,6 +95,13 @@ async fn main() {
                 println!("error: {}", e);
             }
         }
+    }
+}
+
+fn determine_replica(replica: Option<String>) -> String {
+    match replica {
+        Some(_) => "follower".to_string(),
+        None => "master".to_string(),
     }
 }
 
