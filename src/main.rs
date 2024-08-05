@@ -6,6 +6,7 @@ use std::{
 };
 
 use bytes::{Buf, BufMut};
+use clap::Parser;
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
     net::TcpListener,
@@ -28,11 +29,25 @@ struct RedisDB {
     instance: Arc<Mutex<HashMap<String, RedisEntry>>>,
 }
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Name of the person to greet
+    #[arg(short, long, default_value_t = format!("6379"))]
+    port: String,
+
+    /// Number of times to greet
+    #[arg(short, long, default_value_t = format!("master"))]
+    replicaof: String,
+}
+
 #[tokio::main]
 async fn main() {
     println!("Logs from your program will appear here!");
 
-    let listener = TcpListener::bind("127.0.0.1:6379").await.unwrap();
+    let args = Args::parse();
+
+    let listener = TcpListener::bind(format!("127.0.0.1:{}", args.port)).await.unwrap();
 
     let db = RedisDB {
         instance: Arc::new(Mutex::new(HashMap::new())),
