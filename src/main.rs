@@ -19,6 +19,7 @@ enum RedisCommands {
     Get(String),
 }
 
+#[derive(Debug)]
 struct RedisEntry {
     value: String,
     stored: Instant,
@@ -64,7 +65,7 @@ async fn main() {
 
                 tokio::spawn(async move {
                     loop {
-                        let mut buf = vec![];
+                        let mut buf = Vec::new();
                         let mut buf_reader = BufReader::new(&mut stream);
                         let read_stream = buf_reader.read_buf(&mut buf).await.unwrap();
 
@@ -124,7 +125,9 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
             let value: String;
             match db_lock.get(command[4]) {
                 Some(val) => {
+                    println!("REDIS ENTRY: {:?}", val);
                     let expirey: i32 = val.expirey.try_into().unwrap();
+                    println!("EXPIREY: {}", expirey);
                     if expirey != -1
                         && Instant::now() - val.stored
                             >= Duration::from_millis(expirey.try_into().unwrap())
