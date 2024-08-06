@@ -7,7 +7,7 @@ use clap::Parser;
 use reqwest::Client;
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
-    net::{TcpListener, TcpStream},
+    net::{TcpListener, TcpStream}, stream,
 };
 
 enum RedisCommands {
@@ -67,10 +67,13 @@ async fn main() {
                 let mut socket1 = TcpStream::connect(&host).await.unwrap();
                 println!("replica node - sending ping");
                 let _ = socket1.write_all(b"*1\r\n$4\r\nPING\r\n").await;
+                socket1.flush().await;
                 println!("replica node - sending listening port");
                 let _ = socket1.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n").await;
+                socket1.flush().await;
                 println!("replica node - sending replica capabilities");
                 let _ = socket1.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
+                socket1.flush().await;
             }
         },
         None => println!("master node - replica will connect to master"),
