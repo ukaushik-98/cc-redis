@@ -62,7 +62,7 @@ async fn main() {
         Some(val) => {
             println!("replica node - connecting to master {}", val);
             let mut socket = TcpStream::connect(val.replace(" ", ":")).await.unwrap();
-            socket.write_all(b"").await;
+            let result = socket.write_all(b"*1\r\n$4\r\nPING\r\n").await;
         },
         None => println!("master node - replica will connect to master"),
     };
