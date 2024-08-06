@@ -113,6 +113,8 @@ async fn main() {
 
                         let response = parser(command, &mut db_clone);
 
+                        println!("{}", response);
+
                         let _ = stream.write(response.as_bytes()).await;
                     }
                 });
