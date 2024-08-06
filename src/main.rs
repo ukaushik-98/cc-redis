@@ -4,6 +4,7 @@ use std::{
 
 use bytes::{Buf, BufMut};
 use clap::Parser;
+use reqwest::Client;
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
     net::TcpListener,
@@ -55,6 +56,20 @@ async fn main() {
         status: args.replicaof.clone(),
         replication_id: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
         offset: "0".to_string()
+    };
+
+    let res = match args.replicaof.clone() {
+        Some(val) => {
+            println!("replica node - connecting to master {}", val);
+            let client = Client::new();
+            let res = client
+                .get(val.replace(" ", ":"))
+                .body("*1\r\n$4\r\nPING\r\n")
+                .send()
+                .await;
+            println!("{:?}", res.unwrap());
+        },
+        None => println!("master node - replica will connect to master"),
     };
 
     loop {
