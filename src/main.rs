@@ -58,11 +58,18 @@ async fn main() {
         offset: "0".to_string()
     };
 
-    let res = match args.replicaof.clone() {
+    let res = match &args.replicaof {
         Some(val) => {
-            println!("replica node - connecting to master {}", val);
-            let mut socket = TcpStream::connect(val.replace(" ", ":")).await.unwrap();
-            let result = socket.write_all(b"*1\r\n$4\r\nPING\r\n").await;
+            let host = val.replace(" ", ":");
+            println!("replica node - connecting to master {}", host);
+            let mut socket1 = TcpStream::connect(&host).await.unwrap();
+            let result1 = socket1.write_all(b"*1\r\n$4\r\nPING\r\n").await;
+            
+            let mut socket2 = TcpStream::connect(&host).await.unwrap();
+            let result2 = socket2.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n").await;
+            
+            let mut socket3 = TcpStream::connect(&host).await.unwrap();
+            let result3 = socket3.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
         },
         None => println!("master node - replica will connect to master"),
     };
@@ -171,6 +178,9 @@ fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
             };
             let value = format!("role:{}:master_replid:{}:master_repl_offset:{}", role, db.replication_id, db.offset);
             format!("${}\r\n{}\r\n", value.len(), value)
+        },
+        "replconf" => {
+            "+OK\r\n".to_string()
         },
         _ => panic!("unrecognized command"),
     }
