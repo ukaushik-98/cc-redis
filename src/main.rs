@@ -69,7 +69,7 @@ async fn main() {
                 let _ = socket1.write_all(b"*1\r\n$4\r\nPING\r\n").await;
                 socket1.flush().await;
                 println!("replica node - sending listening port");
-                let _ = socket1.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n").await;
+                let _ = socket1.write_all(& b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n".to_vec()).await;
                 socket1.flush().await;
                 println!("replica node - sending replica capabilities");
                 let _ = socket1.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
