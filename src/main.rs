@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap, fmt::format, hash::Hash, io::Write, result, sync::{Arc, Mutex}, time::{self, Duration, Instant}
+    collections::HashMap, fmt::format, hash::Hash, io::Write, net::TcpStream, result, sync::{Arc, Mutex}, time::{self, Duration, Instant}
 };
 
 use bytes::{Buf, BufMut};
@@ -7,7 +7,7 @@ use clap::Parser;
 use reqwest::Client;
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
-    net::{TcpListener, TcpStream}, stream,
+    net::{TcpListener}, stream,
 };
 
 enum RedisCommands {
@@ -63,18 +63,18 @@ async fn main() {
             let host = val.replace(" ", ":");
             println!("replica node - connecting to master {}", host);
 
-            let mut socket = TcpStream::connect(&host).await.unwrap();
+            let mut socket = TcpStream::connect(&host).unwrap();
             println!("replica node - sending ping");
-            let _ = socket.write_all(b"*1\r\n$4\r\nPING\r\n").await;
-            let _ = socket.flush().await;
+            let _ = socket.write_all(b"*1\r\n$4\r\nPING\r\n");
+            let _ = socket.flush();
 
             println!("replica node - sending listening port");
-            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n").await;
-            //let _ = socket.flush().await;
+            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n");
+            let _ = socket.flush();
 
             println!("replica node - sending replica capabilities");
-            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
-            //let _ = socket.flush().await;
+            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n"); 
+            let _ = socket.flush();
         },
         None => println!("master node - replica will connect to master"),
     };
