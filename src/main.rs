@@ -63,29 +63,18 @@ async fn main() {
             let host = val.replace(" ", ":");
             println!("replica node - connecting to master {}", host);
 
-            {
-                let mut socket = TcpStream::connect(&host).await.unwrap();
-                println!("replica node - sending ping");
-                let mut buf: Vec<u8> = vec![];
-                let _ = socket.write_all(b"*1\r\n$4\r\nPING\r\n").await;
-                let _ = socket.flush().await;
-                let _result = socket.read(&mut buf).await;
-                println!("RESULT: {:?}", std::str::from_utf8(&buf));
+            let mut socket = TcpStream::connect(&host).await.unwrap();
+            println!("replica node - sending ping");
+            let _ = socket.write_all(b"*1\r\n$4\r\nPING\r\n").await;
+            let _ = socket.flush().await;
 
-                println!("replica node - sending listening port");
-                let mut buf: Vec<u8> = vec![];
-                let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n").await;
-                let _ = socket.flush().await;
-                let _result = socket.read(&mut buf).await;
-                println!("RESULT: {:?}", std::str::from_utf8(&buf));
+            println!("replica node - sending listening port");
+            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n").await;
+            //let _ = socket.flush().await;
 
-                println!("replica node - sending replica capabilities");
-                let mut buf: Vec<u8> = vec![];
-                let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
-                let _ = socket.flush().await;
-                let _result = socket.read(&mut buf).await;
-                println!("RESULT: {:?}", std::str::from_utf8(&buf));
-            }
+            println!("replica node - sending replica capabilities");
+            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
+            //let _ = socket.flush().await;
         },
         None => println!("master node - replica will connect to master"),
     };
@@ -122,6 +111,8 @@ async fn main() {
                         };
 
                         let command: Vec<&str> = command.trim().split("\r\n").collect();
+
+                        println!("{:?}", command);
 
                         let response = parser(command, &mut db_clone);
 
