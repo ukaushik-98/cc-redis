@@ -106,7 +106,10 @@ async fn main() {
                     loop {
                         let mut buf = Vec::new();
                         let mut buf_reader = BufReader::new(&mut stream);
-                        let read_stream = buf_reader.read_buf(&mut buf).await.unwrap();
+                        let read_stream = match buf_reader.read_buf(&mut buf).await {
+                            Ok(val) => val,
+                            Err(_) => 0,
+                        };
 
                         if read_stream == 0 {
                             println!("socket closed!");
