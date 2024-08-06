@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap, fmt::format, hash::Hash, sync::{Arc, Mutex}, time::{self, Duration, Instant}
+    collections::HashMap, fmt::format, hash::Hash, io::Write, sync::{Arc, Mutex}, time::{self, Duration, Instant}
 };
 
 use bytes::{Buf, BufMut};
@@ -7,7 +7,7 @@ use clap::Parser;
 use reqwest::Client;
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
-    net::TcpListener,
+    net::{TcpListener, TcpStream},
 };
 
 enum RedisCommands {
@@ -61,13 +61,8 @@ async fn main() {
     let res = match args.replicaof.clone() {
         Some(val) => {
             println!("replica node - connecting to master {}", val);
-            let client = Client::new();
-            let res = client
-                .get(val.replace(" ", ":"))
-                .body("*1\r\n$4\r\nPING\r\n")
-                .send()
-                .await;
-            println!("{:?}", res.unwrap());
+            let mut socket = TcpStream::connect(val.replace(" ", ":")).await.unwrap();
+            socket.write_all(b"").await;
         },
         None => println!("master node - replica will connect to master"),
     };
