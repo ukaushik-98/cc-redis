@@ -76,34 +76,7 @@ async fn main() {
             let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
             //let _ = socket.flush().await;
         },
-        None => {
-            let host = "localhost:6380";
-            println!("replica node - connecting to master {}", host);
-
-            let mut buf = vec![];
-            let mut socket = TcpStream::connect(&host).await.unwrap();
-            println!("replica node - sending ping");
-            let _ = socket.write_all(b"*1\r\n$4\r\nPING\r\n").await;
-            let _ = socket.flush().await;
-
-            let n = socket.read(&mut buf).await.unwrap();
-
-            println!("response: {}", std::str::from_utf8(&buf[..n]).unwrap());
-
-            println!("replica node - sending listening port");
-            let mut buf = vec![];
-            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n").await;
-            let _ = socket.flush().await;
-            let res = socket.read_buf(&mut buf).await;
-            println!("response: {}", std::str::from_utf8(&buf).unwrap());
-
-
-            println!("replica node - sending replica capabilities");
-            let mut buf = vec![];
-            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
-            let res = socket.read_buf(&mut buf).await;
-            println!("response: {}", std::str::from_utf8(&buf).unwrap());
-        } 
+        None => println!("master node - waiting for replicas") 
     };
 
     loop {
