@@ -74,21 +74,26 @@ async fn main() {
             println!("response: {}", output);
 
             println!("replica node - sending listening port");
-            let mut buf1 = vec![];
+            buf.clear();
             let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n").await;
             let _ = socket.flush().await;
-            let res = socket.read_buf(&mut buf1).await.unwrap();
-            let output1 = String::from_utf8_lossy(&buf1);
+            let res = socket.read_buf(&mut buf).await.unwrap();
+            let output1 = String::from_utf8_lossy(&buf);
             println!("response: {}", output1);
 
+            println!("replica node - sending replica capabilities");
+            buf.clear();
+            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
+            let res = socket.read_buf(&mut buf).await.unwrap();
+            let output2 = String::from_utf8_lossy(&buf);
+            println!("response: {}", output2);
 
             println!("replica node - sending replica capabilities");
-            let mut buf2 = vec![];
-            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
-            let res = socket.read_buf(&mut buf2).await.unwrap();
-            let output2 = String::from_utf8_lossy(&buf2);
+            buf.clear();
+            let _ = socket.write_all(b"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n").await; 
+            let res = socket.read_buf(&mut buf).await.unwrap();
+            let output2 = String::from_utf8_lossy(&buf);
             println!("response: {}", output2);
-            println!("response: {}", String::from_utf8_lossy(&buf2))
         },
         None => {
             // let host = "localhost:6380";
