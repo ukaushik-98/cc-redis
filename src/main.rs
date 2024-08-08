@@ -96,7 +96,8 @@ async fn main() {
             
             let mut file = File::open("db.txt").await.unwrap();
             let mut file_buffer = vec![];
-            let _ = file.read_to_end(&mut file_buffer);    
+            let _ = file.read_to_end(&mut file_buffer);
+            println!("FILE: {}", String::from_utf8_lossy(&buf));
             let _ = socket.write(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &file_buffer].concat()).await;
         },
         None => {
