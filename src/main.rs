@@ -87,12 +87,12 @@ async fn main() {
             let output2 = String::from_utf8_lossy(&buf);
             println!("response: {}", output2);
 
-            // println!("replica node - sending replica capabilities");
-            // buf.clear();
-            // let _ = socket.write_all(b"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n").await; 
-            // let res = socket.read_buf(&mut buf).await.unwrap();
-            // let output2 = String::from_utf8_lossy(&buf);
-            // println!("response: {}", output2);
+            println!("replica node - sending replica capabilities");
+            buf.clear();
+            let _ = socket.write_all(b"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n").await; 
+            let res = socket.read_buf(&mut buf).await.unwrap();
+            let output2 = String::from_utf8_lossy(&buf);
+            println!("response: {}", output2);
 
             // let mut file = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
             // println!("FILE: {}", file);
