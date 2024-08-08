@@ -194,7 +194,7 @@ async fn main() {
                                 let _ = file.read_to_end(&mut file_buffer).await;
                                 let send_resp = &[format!("${}\r\n", file_buffer.len()).as_bytes(), &file_buffer].concat();
                                 println!("FILE: {:?}", send_resp);
-                                let _ = stream.write(format!("${}\r\n", file_buffer.len()).as_bytes()).await;
+                                let _ = stream.write(&send_resp).await;
                             },
                             _ => {}
                         }
