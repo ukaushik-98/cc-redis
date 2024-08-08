@@ -6,8 +6,7 @@ use bytes::{Buf, BufMut};
 use clap::Parser;
 use reqwest::Client;
 use tokio::{
-    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
-    net::{TcpListener, TcpStream}, stream,
+    fs::File, io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader}, net::{TcpListener, TcpStream}, stream
 };
 
 enum RedisCommands {
@@ -94,6 +93,11 @@ async fn main() {
             let res = socket.read_buf(&mut buf).await.unwrap();
             let output2 = String::from_utf8_lossy(&buf);
             println!("response: {}", output2);
+            
+            let mut file = File::open("rdb.txt").await.unwrap();
+            let mut file_buffer = vec![];
+            let _ = file.read_to_end(&mut file_buffer);    
+            let _ = socket.write_all(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &file_buffer].concat()).await;
         },
         None => {
             // let host = "localhost:6380";
