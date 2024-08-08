@@ -1,30 +1,16 @@
 use std::{
     collections::HashMap,
-    fmt::format,
-    hash::Hash,
-    io::Write,
-    result,
     sync::{Arc, Mutex},
-    time::{self, Duration, Instant},
+    time::{Duration, Instant},
 };
 
 use base64::prelude::*;
-use bytes::{Buf, BufMut};
 use clap::Parser;
-use reqwest::Client;
 use tokio::{
     fs::File,
-    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
+    io::{AsyncReadExt, AsyncWriteExt, BufReader},
     net::{TcpListener, TcpStream},
-    stream,
 };
-
-enum RedisCommands {
-    Echo(String),
-    Ping(String),
-    Set(String),
-    Get(String),
-}
 
 #[derive(Debug)]
 struct RedisEntry {
