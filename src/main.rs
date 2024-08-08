@@ -101,6 +101,7 @@ async fn main() {
             // let _ = socket.write(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &file_buffer].concat()).await;
 
             let mut file = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
+            println!("FILE: {}", file);
             let _ = socket.write(format!("${}\r\n{}", file.len(), file.to_string()).as_bytes()).await; 
         },
         None => {
