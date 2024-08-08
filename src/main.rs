@@ -8,6 +8,7 @@ use reqwest::Client;
 use tokio::{
     fs::File, io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader}, net::{TcpListener, TcpStream}, stream
 };
+use base64::prelude::*;
 
 enum RedisCommands {
     Echo(String),
@@ -192,7 +193,7 @@ async fn main() {
                                 let mut file = File::open("src/rdb.txt").await.unwrap();
                                 let mut file_buffer = vec![];
                                 let _ = file.read_to_end(&mut file_buffer).await;
-                                let _ = stream.write(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &file_buffer].concat()).await;
+                                let _ = stream.write(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &BASE64_STANDARD.decode(&file_buffer).unwrap()].concat()).await;
                             },
                             _ => {}
                         }
