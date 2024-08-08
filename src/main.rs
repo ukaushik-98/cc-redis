@@ -87,18 +87,12 @@ async fn main() {
             let output2 = String::from_utf8_lossy(&buf);
             println!("response: {}", output2);
 
-            println!("replica node - sending replica capabilities");
-            buf.clear();
-            let _ = socket.write_all(b"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n").await; 
-            let res = socket.read_buf(&mut buf).await.unwrap();
-            let output2 = String::from_utf8_lossy(&buf);
-            println!("response: {}", output2);
-            
-            let mut file = File::open("db.txt").await.unwrap();
-            let mut file_buffer = vec![];
-            let _ = file.read_to_end(&mut file_buffer).await;
-            println!("FILE: {}", String::from_utf8_lossy(&buf));
-            let _ = socket.write(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &file_buffer].concat()).await;
+            // println!("replica node - sending replica capabilities");
+            // buf.clear();
+            // let _ = socket.write_all(b"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n").await; 
+            // let res = socket.read_buf(&mut buf).await.unwrap();
+            // let output2 = String::from_utf8_lossy(&buf);
+            // println!("response: {}", output2);
 
             // let mut file = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
             // println!("FILE: {}", file);
@@ -187,11 +181,22 @@ async fn main() {
 
                         println!("{:?}", command);
 
-                        let response = parser(command, &mut db_clone);
+                        let response = parser(&command, &mut db_clone);
 
                         println!("{}", response);
 
                         let _ = stream.write(response.as_bytes()).await;
+
+                        match command[2].to_ascii_lowercase().as_str() {
+                            "psync" => {
+                                let mut file = File::open("db.txt").await.unwrap();
+                                let mut file_buffer = vec![];
+                                let _ = file.read_to_end(&mut file_buffer).await;
+                                println!("FILE: {}", String::from_utf8_lossy(&buf));
+                                let _ = stream.write(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &file_buffer].concat()).await;
+                            },
+                            _ => {}
+                        }
                     }
                 });
             }
@@ -202,7 +207,7 @@ async fn main() {
     }
 }
 
-fn parser(command: Vec<&str>, db: &mut RedisDB) -> String {
+fn parser(command: &Vec<&str>, db: &mut RedisDB) -> String {
     match command[2].to_ascii_lowercase().as_str() {
         "ping" => "+PONG\r\n".to_string(),
         "echo" => {
