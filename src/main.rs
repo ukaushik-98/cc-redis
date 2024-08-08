@@ -189,7 +189,7 @@ async fn main() {
 
                         match command[2].to_ascii_lowercase().as_str() {
                             "psync" => {
-                                let mut file = File::open("db.txt").await.unwrap();
+                                let mut file = File::open("rdb.txt").await.unwrap();
                                 let mut file_buffer = vec![];
                                 let _ = file.read_to_end(&mut file_buffer).await;
                                 println!("FILE: {}", String::from_utf8_lossy(&buf));
