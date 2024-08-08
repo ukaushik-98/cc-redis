@@ -193,7 +193,8 @@ async fn main() {
                                 let mut file = File::open("src/rdb.txt").await.unwrap();
                                 let mut file_buffer = vec![];
                                 let _ = file.read_to_end(&mut file_buffer).await;
-                                let _ = stream.write(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &BASE64_STANDARD.decode(&file_buffer).unwrap()].concat()).await;
+                                let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
+                                let _ = stream.write(&[format!("${}\r\n", decoded_rdb.len()).as_bytes(), &decoded_rdb].concat()).await;
                             },
                             _ => {}
                         }
