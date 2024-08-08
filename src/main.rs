@@ -100,35 +100,45 @@ async fn main() {
             let _ = socket.write_all(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &file_buffer].concat()).await;
         },
         None => {
-            // let host = "localhost:6380";
-            // println!("replica node - connecting to master {}", host);
+            let host = "localhost:6380";
+            println!("replica node - connecting to master {}", host);
 
-            // let mut buf = vec![];
-            // let mut socket = TcpStream::connect(&host).await.unwrap();
-            // println!("replica node - sending ping");
-            // let _ = socket.write_all(b"*1\r\n$4\r\nPING\r\n").await;
-            // let _ = socket.flush().await;
+            let mut buf = vec![];
+            let mut socket = TcpStream::connect(&host).await.unwrap();
+            println!("replica node - sending ping");
+            let _ = socket.write_all(b"*1\r\n$4\r\nPING\r\n").await;
+            let _ = socket.flush().await;
 
-            // let n = socket.read_buf(&mut buf).await.unwrap();
-            // let output = String::from_utf8_lossy(&buf);
-            // println!("response: {}", output);
+            let n = socket.read_buf(&mut buf).await.unwrap();
+            let output = String::from_utf8_lossy(&buf);
+            println!("response: {}", output);
 
-            // println!("replica node - sending listening port");
-            // let mut buf1 = vec![];
-            // let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n").await;
-            // let _ = socket.flush().await;
-            // let res = socket.read_buf(&mut buf1).await.unwrap();
-            // let output1 = String::from_utf8_lossy(&buf1);
-            // println!("response: {}", output1);
+            println!("replica node - sending listening port");
+            buf.clear();
+            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n").await;
+            let _ = socket.flush().await;
+            let res = socket.read_buf(&mut buf).await.unwrap();
+            let output1 = String::from_utf8_lossy(&buf);
+            println!("response: {}", output1);
 
+            println!("replica node - sending replica capabilities");
+            buf.clear();
+            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
+            let res = socket.read_buf(&mut buf).await.unwrap();
+            let output2 = String::from_utf8_lossy(&buf);
+            println!("response: {}", output2);
 
-            // println!("replica node - sending replica capabilities");
-            // let mut buf2 = vec![];
-            // let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
-            // let res = socket.read_buf(&mut buf2).await.unwrap();
-            // let output2 = String::from_utf8_lossy(&buf2);
-            // println!("response: {}", output2);
-            // println!("response: {}", String::from_utf8_lossy(&buf2))
+            println!("replica node - sending replica capabilities");
+            buf.clear();
+            let _ = socket.write_all(b"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n").await; 
+            let res = socket.read_buf(&mut buf).await.unwrap();
+            let output2 = String::from_utf8_lossy(&buf);
+            println!("response: {}", output2);
+            
+            let mut file = File::open("src/rdb.txt").await.unwrap();
+            let mut file_buffer = vec![];
+            let _ = file.read_to_end(&mut file_buffer);    
+            let _ = socket.write_all(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &file_buffer].concat()).await;
         } 
     };
 
