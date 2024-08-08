@@ -1,14 +1,23 @@
 use std::{
-    collections::HashMap, fmt::format, hash::Hash, io::Write, result, sync::{Arc, Mutex}, time::{self, Duration, Instant}
+    collections::HashMap,
+    fmt::format,
+    hash::Hash,
+    io::Write,
+    result,
+    sync::{Arc, Mutex},
+    time::{self, Duration, Instant},
 };
 
+use base64::prelude::*;
 use bytes::{Buf, BufMut};
 use clap::Parser;
 use reqwest::Client;
 use tokio::{
-    fs::File, io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader}, net::{TcpListener, TcpStream}, stream
+    fs::File,
+    io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
+    net::{TcpListener, TcpStream},
+    stream,
 };
-use base64::prelude::*;
 
 enum RedisCommands {
     Echo(String),
@@ -28,7 +37,7 @@ struct RedisDB {
     instance: Arc<Mutex<HashMap<String, RedisEntry>>>,
     status: Option<String>,
     replication_id: String,
-    offset: String
+    offset: String,
 }
 
 #[derive(Parser, Debug)]
@@ -49,13 +58,15 @@ async fn main() {
 
     let args = Args::parse();
 
-    let listener = TcpListener::bind(format!("127.0.0.1:{}", args.port)).await.unwrap();
+    let listener = TcpListener::bind(format!("127.0.0.1:{}", args.port))
+        .await
+        .unwrap();
 
     let db = RedisDB {
         instance: Arc::new(Mutex::new(HashMap::new())),
         status: args.replicaof.clone(),
         replication_id: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
-        offset: "0".to_string()
+        offset: "0".to_string(),
     };
 
     let res = match &args.replicaof {
@@ -75,7 +86,9 @@ async fn main() {
 
             println!("replica node - sending listening port");
             buf.clear();
-            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n").await;
+            let _ = socket
+                .write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n")
+                .await;
             let _ = socket.flush().await;
             let res = socket.read_buf(&mut buf).await.unwrap();
             let output1 = String::from_utf8_lossy(&buf);
@@ -83,68 +96,23 @@ async fn main() {
 
             println!("replica node - sending replica capabilities");
             buf.clear();
-            let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
+            let _ = socket
+                .write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n")
+                .await;
             let res = socket.read_buf(&mut buf).await.unwrap();
             let output2 = String::from_utf8_lossy(&buf);
             println!("response: {}", output2);
 
             println!("replica node - sending replica capabilities");
             buf.clear();
-            let _ = socket.write_all(b"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n").await; 
+            let _ = socket
+                .write_all(b"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n")
+                .await;
             let res = socket.read_buf(&mut buf).await.unwrap();
             let output2 = String::from_utf8_lossy(&buf);
             println!("response: {}", output2);
-
-            // let mut file = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
-            // println!("FILE: {}", file);
-            // let _ = socket.write(format!("${}\r\n{}", file.len(), file.to_string()).as_bytes()).await; 
-        },
-        None => {
-            // let host = "localhost:6380";
-            // println!("replica node - connecting to master {}", host);
-
-            // let mut buf = vec![];
-            // let mut socket = TcpStream::connect(&host).await.unwrap();
-            // println!("replica node - sending ping");
-            // let _ = socket.write_all(b"*1\r\n$4\r\nPING\r\n").await;
-            // let _ = socket.flush().await;
-
-            // let n = socket.read_buf(&mut buf).await.unwrap();
-            // let output = String::from_utf8_lossy(&buf);
-            // println!("response: {}", output);
-
-            // println!("replica node - sending listening port");
-            // buf.clear();
-            // let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n").await;
-            // let _ = socket.flush().await;
-            // let res = socket.read_buf(&mut buf).await.unwrap();
-            // let output1 = String::from_utf8_lossy(&buf);
-            // println!("response: {}", output1);
-
-            // println!("replica node - sending replica capabilities");
-            // buf.clear();
-            // let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
-            // let res = socket.read_buf(&mut buf).await.unwrap();
-            // let output2 = String::from_utf8_lossy(&buf);
-            // println!("response: {}", output2);
-
-            // println!("replica node - sending replica capabilities");
-            // buf.clear();
-            // let _ = socket.write_all(b"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n").await; 
-            // let res = socket.read_buf(&mut buf).await.unwrap();
-            // let output2 = String::from_utf8_lossy(&buf);
-            // println!("response: {}", output2);
-            
-            // let mut file = File::open("src/rdb.txt").await.unwrap();
-            // let mut file_buffer = vec![];
-            // let _ = file.read_to_end(&mut file_buffer).await;
-            // println!("FILE: {}", String::from_utf8_lossy(&file_buffer));    
-            // let _ = socket.write_all(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &file_buffer].concat()).await;
-
-            // let mut file = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
-            // println!("FILE: {}", file);
-            // let _ = socket.write(format!("${}\r\n{}", file.len(), file.to_string()).as_bytes()).await; 
-        } 
+        }
+        None => {}
     };
 
     loop {
@@ -156,7 +124,7 @@ async fn main() {
                     instance: db.instance.clone(),
                     status: args.replicaof.clone(),
                     replication_id: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
-                    offset: "0".to_string()
+                    offset: "0".to_string(),
                 };
 
                 tokio::spawn(async move {
@@ -194,8 +162,16 @@ async fn main() {
                                 let mut file_buffer = vec![];
                                 let _ = file.read_to_end(&mut file_buffer).await;
                                 let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
-                                let _ = stream.write(&[format!("${}\r\n", decoded_rdb.len()).as_bytes(), &decoded_rdb].concat()).await;
-                            },
+                                let _ = stream
+                                    .write(
+                                        &[
+                                            format!("${}\r\n", decoded_rdb.len()).as_bytes(),
+                                            &decoded_rdb,
+                                        ]
+                                        .concat(),
+                                    )
+                                    .await;
+                            }
                             _ => {}
                         }
                     }
@@ -257,25 +233,22 @@ fn parser(command: &Vec<&str>, db: &mut RedisDB) -> String {
                 None => return "$-1\r\n".to_string(),
             };
             format!("${}\r\n{}\r\n", value.len(), value)
-        },
+        }
         "info" => {
             let role = match &db.status {
-                Some(_) => {
-                    "role:slave"
-                },
-                None => {
-                    "role:master"
-                },
+                Some(_) => "role:slave",
+                None => "role:master",
             };
-            let value = format!("role:{}:master_replid:{}:master_repl_offset:{}", role, db.replication_id, db.offset);
+            let value = format!(
+                "role:{}:master_replid:{}:master_repl_offset:{}",
+                role, db.replication_id, db.offset
+            );
             format!("${}\r\n{}\r\n", value.len(), value)
-        },
-        "replconf" => {
-            "+OK\r\n".to_string()
-        },
+        }
+        "replconf" => "+OK\r\n".to_string(),
         "psync" => {
             format!("+FULLRESYNC {} 0\r\n", db.replication_id)
-        },
+        }
         _ => panic!("unrecognized command"),
     }
 }
