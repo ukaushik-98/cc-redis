@@ -24,6 +24,7 @@ struct RedisDB {
     status: Option<String>,
     replication_id: String,
     offset: String,
+    replica_streams: Arc<Mutex<Vec<TcpStream>>>,
 }
 
 #[derive(Parser, Debug)]
@@ -53,6 +54,7 @@ async fn main() {
         status: args.replicaof.clone(),
         replication_id: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
         offset: "0".to_string(),
+        replica_streams: Arc::new(Mutex::new(Vec::new())),
     };
 
     let res = match &args.replicaof {
@@ -111,37 +113,33 @@ async fn main() {
                     status: args.replicaof.clone(),
                     replication_id: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
                     offset: "0".to_string(),
+                    replica_streams: db.replica_streams.clone(),
                 };
 
                 tokio::spawn(async move {
-                    loop {
-                        let mut buf = Vec::new();
-                        let mut buf_reader = BufReader::new(&mut stream);
-                        let read_stream = match buf_reader.read_buf(&mut buf).await {
-                            Ok(val) => val,
-                            Err(_) => 0,
-                        };
+                    let mut buf = Vec::new();
+                    let mut buf_reader = BufReader::new(&mut stream);
+                    match buf_reader.read_buf(&mut buf).await {
+                        Ok(val) => val,
+                        Err(_) => 0,
+                    };
 
-                        if read_stream == 0 {
-                            println!("socket closed!");
-                            break;
-                        }
+                    let command_string = match std::str::from_utf8(&buf) {
+                        Ok(s) => s,
+                        Err(_) => panic!("failed to parse input"),
+                    };
 
-                        let command = match std::str::from_utf8(&buf) {
-                            Ok(s) => s,
-                            Err(_) => panic!("failed to parse input"),
-                        };
+                    let command: Vec<&str> = command_string.trim().split("\r\n").collect();
 
-                        let command: Vec<&str> = command.trim().split("\r\n").collect();
+                    println!("{:?}", command);
 
-                        println!("{:?}", command);
+                    let response = parser(&command, &mut db_clone);
 
-                        let response = parser(&command, &mut db_clone);
+                    println!("{}", response);
 
-                        println!("{}", response);
+                    let _ = stream.write(response.as_bytes()).await;
 
-                        let _ = stream.write(response.as_bytes()).await;
-
+                    tokio::spawn( async move {
                         match command[2].to_ascii_lowercase().as_str() {
                             "psync" => {
                                 let mut file = File::open("src/rdb.txt").await.unwrap();
@@ -157,10 +155,16 @@ async fn main() {
                                         .concat(),
                                     )
                                     .await;
+                                db_clone.replica_streams.lock().unwrap().push(stream);
+                            },
+                            "set" => {
+                                for stream in db_clone.replica_streams.lock().unwrap().iter_mut() {
+                                    let _ = stream.write_all(command_string.as_bytes());
+                                }
                             }
                             _ => {}
                         }
-                    }
+                    });
                 });
             }
             Err(e) => {
