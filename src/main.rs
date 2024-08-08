@@ -97,7 +97,7 @@ async fn main() {
             let mut file = File::open("src/db.txt").await.unwrap();
             let mut file_buffer = vec![];
             let _ = file.read_to_end(&mut file_buffer);    
-            let _ = socket.write_all(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &file_buffer].concat()).await;
+            let _ = socket.write(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &file_buffer].concat()).await;
         },
         None => {
             // let host = "localhost:6380";
