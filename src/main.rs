@@ -154,7 +154,7 @@ async fn main() {
                         None => "",
                     };
 
-                    println!("REQUESTS COMMAND: {:?}", requests);
+                    println!("REQUESTS COMMAND: {:?}, LEN: {}", requests, requests.len());
                     let command_vec: Vec<&str> = command.split("\r\n").collect();
 
                     match command_vec[2].to_ascii_lowercase().as_str() {
