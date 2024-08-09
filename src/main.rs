@@ -139,32 +139,30 @@ async fn main() {
 
                     let _ = stream.write(response.as_bytes()).await;
 
-                    tokio::spawn( async move {
-                        match command[2].to_ascii_lowercase().as_str() {
-                            "psync" => {
-                                let mut file = File::open("src/rdb.txt").await.unwrap();
-                                let mut file_buffer = vec![];
-                                let _ = file.read_to_end(&mut file_buffer).await;
-                                let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
-                                let _ = stream
-                                    .write(
-                                        &[
-                                            format!("${}\r\n", decoded_rdb.len()).as_bytes(),
-                                            &decoded_rdb,
-                                        ]
-                                        .concat(),
-                                    )
-                                    .await;
-                                db_clone.replica_streams.lock().unwrap().push(stream);
-                            },
-                            "set" => {
-                                for stream in db_clone.replica_streams.lock().unwrap().iter_mut() {
-                                    let _ = stream.write_all(command_string.as_bytes());
-                                }
-                            }
-                            _ => {}
+                    match command[2].to_ascii_lowercase().as_str() {
+                        "psync" => {
+                            let mut file = File::open("src/rdb.txt").await.unwrap();
+                            let mut file_buffer = vec![];
+                            let _ = file.read_to_end(&mut file_buffer).await;
+                            let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
+                            let _ = stream
+                                .write(
+                                    &[
+                                        format!("${}\r\n", decoded_rdb.len()).as_bytes(),
+                                        &decoded_rdb,
+                                    ]
+                                    .concat(),
+                                )
+                                .await;
+                            db_clone.replica_streams.lock().unwrap().push(stream);
                         }
-                    });
+                        "set" => {
+                            for stream in db_clone.replica_streams.lock().unwrap().iter_mut() {
+                                let _ = stream.write_all(&buf);
+                            }
+                        }
+                        _ => {}
+                    }
                 });
             }
             Err(e) => {
