@@ -154,7 +154,7 @@ async fn main() {
                         None => "",
                     };
 
-                    println!("REQUESTS COMMAND: {:?}", command);
+                    println!("REQUESTS COMMAND: {:?}", requests);
 
                     match command.to_ascii_lowercase().as_str() {
                         "psync" => {
