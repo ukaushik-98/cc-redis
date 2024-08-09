@@ -151,7 +151,7 @@ async fn main() {
 
                     let command: Vec<&str> = requests.trim().split("\r\n").collect();
 
-                    println!("{:?}", command);
+                    println!("REQUESTS COMMAND: {:?}", command);
 
                     match command[2].to_ascii_lowercase().as_str() {
                         "psync" => {
