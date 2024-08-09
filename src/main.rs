@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     sync::{Arc, Mutex},
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime},
 };
 
 use base64::prelude::*;
@@ -174,7 +174,7 @@ async fn main() {
                                 )
                                 .await;
                             db_clone.replica_streams.lock().unwrap().push(stream);
-                            println!("STREAM OF DB CLONE");
+                            println!("{:?} STREAM OF DB CLONE", SystemTime::now());
                         }
                         "set" => {
                             for stream in db_clone.replica_streams.lock().unwrap().iter_mut() {
