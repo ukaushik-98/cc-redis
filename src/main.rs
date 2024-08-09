@@ -181,7 +181,9 @@ async fn main() {
                                 let _ = stream.write_all(&buf);
                             }
                         }
-                        _ => {}
+                        _ => {
+                            println!("command miss");
+                        }
                     }
                 });
             }
