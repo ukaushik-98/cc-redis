@@ -153,6 +153,10 @@ async fn main() {
 
                     println!("REQUESTS COMMAND: {:?}", command);
 
+                    if command.len() < 2 {
+                        return;
+                    }
+                    
                     match command[2].to_ascii_lowercase().as_str() {
                         "psync" => {
                             let mut file = File::open("src/rdb.txt").await.unwrap();
