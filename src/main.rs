@@ -149,17 +149,15 @@ async fn main() {
 
                     // push command to replicas
                     let command_option = requests.last().take();
-                    let command: &str = match command_option {
-                        Some(val) => val.trim(),
-                        None => "",
-                    };
+                    if command_option == None {
+                        return;
+                    }
+                    let command: &str = command_option.unwrap().trim();
 
                     println!("REQUESTS COMMAND: {:?}, LEN: {}", requests, requests.len());
                     let command_vec: Vec<&str> = command.split("\r\n").collect();
 
-                    if command_vec.len() > 0 {
-                        return;
-                    }
+                    if command_vec.len() > 0 {}
 
                     println!("COMMAND VEC 2: {}", command_vec[2].to_ascii_lowercase().as_str());
 
