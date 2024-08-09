@@ -140,7 +140,7 @@ async fn main() {
                         println!("{:?}", command);
 
                         let response = parser(&command, &mut db_clone);
-                        println!("{}", response);
+                        println!("RESP EVERY: {}", response);
                         
 
                         let _ = stream.write(response.as_bytes()).await;
