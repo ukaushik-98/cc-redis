@@ -117,27 +117,42 @@ async fn main() {
                 };
 
                 tokio::spawn(async move {
+                    let mut requests = Vec::new();
                     let mut buf = Vec::new();
-                    let mut buf_reader = BufReader::new(&mut stream);
-                    match buf_reader.read_buf(&mut buf).await {
-                        Ok(val) => val,
-                        Err(_) => 0,
-                    };
+                    loop {
+                        let mut buf_reader = BufReader::new(&mut stream);
+                        let val = match buf_reader.read_buf(&mut buf).await {
+                            Ok(val) => val,
+                            Err(_) => 0,
+                        };
 
-                    let command_string = match std::str::from_utf8(&buf) {
-                        Ok(s) => s,
-                        Err(_) => panic!("failed to parse input"),
-                    };
+                        if val == 0 {
+                            break;
+                        }
+
+                        let command_string = match std::str::from_utf8(&buf) {
+                            Ok(s) => s,
+                            Err(_) => panic!("failed to parse input"),
+                        };
+                        requests.push(command_string.to_string());
+
+                        let command: Vec<&str> = command_string.trim().split("\r\n").collect();
+                        println!("{:?}", command);
+
+                        let response = parser(&command, &mut db_clone);
+                        println!("{}", response);
+                        
+
+                        let _ = stream.write(response.as_bytes()).await;
+                        buf.clear();
+                    }
+
+                    // push command to replicas
+                    let command_string = &requests[&requests.len() - 1];
 
                     let command: Vec<&str> = command_string.trim().split("\r\n").collect();
 
                     println!("{:?}", command);
-
-                    let response = parser(&command, &mut db_clone);
-
-                    println!("{}", response);
-
-                    let _ = stream.write(response.as_bytes()).await;
 
                     match command[2].to_ascii_lowercase().as_str() {
                         "psync" => {
