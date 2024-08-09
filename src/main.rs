@@ -262,7 +262,7 @@ fn parser(command: &Vec<&str>, db: &mut RedisDB) -> String {
         }
         "replconf" => "+OK\r\n".to_string(),
         "psync" => {
-            format!("+FULLRESYNC {} 0\r\n", db.replication_id)
+            format!("+FULLRESYNC {} 0", db.replication_id)
         }
         _ => panic!("unrecognized command"),
     }
