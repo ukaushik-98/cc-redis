@@ -161,8 +161,8 @@ async fn main() {
 
                     match command_vec[2].to_ascii_lowercase().as_str() {
                         "psync" => {
-                            let mut file = File::open("rdb.txt").await.unwrap();
                             println!("IN PSYNC");
+                            let mut file = File::open("rdb.txt").await.unwrap();
                             let mut file_buffer = vec![];
                             println!("FILE READ: {:?}", file_buffer);
                             let _ = file.read_to_end(&mut file_buffer).await;
