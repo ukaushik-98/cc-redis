@@ -155,8 +155,9 @@ async fn main() {
                     };
 
                     println!("REQUESTS COMMAND: {:?}", requests);
+                    let command_vec: Vec<&str> = command.split("\r\n").collect();
 
-                    match command.to_ascii_lowercase().as_str() {
+                    match command_vec[2].to_ascii_lowercase().as_str() {
                         "psync" => {
                             let mut file = File::open("src/rdb.txt").await.unwrap();
                             let mut file_buffer = vec![];
