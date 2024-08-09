@@ -157,7 +157,7 @@ async fn main() {
                     println!("REQUESTS COMMAND: {:?}", requests);
                     let command_vec: Vec<&str> = command.split("\r\n").collect();
 
-                    if command_vec.len() > 3 {
+                    if command_vec.len() < 3 {
                         return;
                     }
 
