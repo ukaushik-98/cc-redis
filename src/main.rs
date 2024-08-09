@@ -117,7 +117,7 @@ async fn main() {
                 };
 
                 tokio::spawn(async move {
-                    let mut requests = Vec::new();
+                    let mut requests = format!("");
                     let mut buf = Vec::new();
                     loop {
                         let mut buf_reader = BufReader::new(&mut stream);
@@ -134,7 +134,7 @@ async fn main() {
                             Ok(s) => s,
                             Err(_) => panic!("failed to parse input"),
                         };
-                        requests.push(command_string.to_string());
+                        requests = command_string.to_string();
 
                         let command: Vec<&str> = command_string.trim().split("\r\n").collect();
                         println!("{:?}", command);
@@ -148,9 +148,8 @@ async fn main() {
                     }
 
                     // push command to replicas
-                    let command_string = &requests[&requests.len() - 1];
 
-                    let command: Vec<&str> = command_string.trim().split("\r\n").collect();
+                    let command: Vec<&str> = requests.trim().split("\r\n").collect();
 
                     println!("{:?}", command);
 
