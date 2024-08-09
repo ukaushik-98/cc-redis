@@ -173,7 +173,7 @@ async fn main() {
                                     .concat(),
                                 )
                                 .await;
-                            db_clone.replica_streams.lock().unwrap().push(stream);
+                            //db_clone.replica_streams.lock().unwrap().push(stream);
                             println!("STREAM OF DB CLONE");
                         }
                         "set" => {
