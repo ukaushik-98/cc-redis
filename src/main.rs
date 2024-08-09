@@ -117,7 +117,7 @@ async fn main() {
                 };
 
                 tokio::spawn(async move {
-                    let mut requests = format!("");
+                    let mut requests = Vec::new();
                     let mut buf = Vec::new();
                     loop {
                         let mut buf_reader = BufReader::new(&mut stream);
@@ -134,7 +134,7 @@ async fn main() {
                             Ok(s) => s,
                             Err(_) => panic!("failed to parse input"),
                         };
-                        requests = command_string.to_string();
+                        requests.push(command_string.to_string());
 
                         let command: Vec<&str> = command_string.trim().split("\r\n").collect();
                         println!("{:?}", command);
@@ -148,16 +148,15 @@ async fn main() {
                     }
 
                     // push command to replicas
-
-                    let command: Vec<&str> = requests.trim().split("\r\n").collect();
+                    let command_option = requests.last().take();
+                    let command: &str = match command_option {
+                        Some(val) => val.trim(),
+                        None => "",
+                    };
 
                     println!("REQUESTS COMMAND: {:?}", command);
 
-                    if command.len() < 2 {
-                        return;
-                    }
-                    
-                    match command[2].to_ascii_lowercase().as_str() {
+                    match command.to_ascii_lowercase().as_str() {
                         "psync" => {
                             let mut file = File::open("src/rdb.txt").await.unwrap();
                             let mut file_buffer = vec![];
