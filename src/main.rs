@@ -167,6 +167,7 @@ async fn main() {
                             let mut file_buffer = vec![];
                             let _ = file.read_to_end(&mut file_buffer).await;
                             let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
+                            println!("DECODED RDB: {:?}", decoded_rdb);
                             let _ = stream
                                 .write(
                                     &[
@@ -177,6 +178,7 @@ async fn main() {
                                 )
                                 .await;
                             db_clone.replica_streams.lock().unwrap().push(stream);
+                            println!("STREAM OF DB CLONE");
                         }
                         "set" => {
                             for stream in db_clone.replica_streams.lock().unwrap().iter_mut() {
