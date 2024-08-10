@@ -185,8 +185,12 @@ async fn main() {
                                 },
                                 Err(_) => println!("FAILED TO WRITE INTO TCP STREAM"),
                             }
-                            db_clone.replica_streams.lock().unwrap().push(stream);
-                            println!("{:?} STREAM OF DB CLONE", SystemTime::now());
+                            let mut replica_streams = db_clone.replica_streams.lock().unwrap();
+                            replica_streams.push(stream);
+                            println!("REPLICA STREAMS: {}", replica_streams.len());
+                            for replica in replica_streams.iter() {
+                                println!("{:?} STREAM OF DB CLONE: {:?}", SystemTime::now(), replica);
+                            }
                         }
                         "set" => {
                             for stream in db_clone.replica_streams.lock().unwrap().iter_mut() {
