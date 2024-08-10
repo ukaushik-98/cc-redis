@@ -170,7 +170,7 @@ async fn main() {
                             let mut file_buffer = b"UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
                             let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
                             println!("DECODED RDB: {:?}", decoded_rdb);
-                            let _ = stream
+                            let write_success = stream
                                 .write(
                                     &[
                                         format!("${}\r\n", decoded_rdb.len()).as_bytes(),
@@ -179,6 +179,12 @@ async fn main() {
                                     .concat(),
                                 )
                                 .await;
+                            match write_success {
+                                Ok(result) => {
+                                    println!("WROTE {} bytes", result)
+                                },
+                                Err(_) => println!("FAILED TO WRITE INTO TCP STREAM"),
+                            }
                             db_clone.replica_streams.lock().unwrap().push(stream);
                             println!("{:?} STREAM OF DB CLONE", SystemTime::now());
                         }
