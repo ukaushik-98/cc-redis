@@ -168,7 +168,7 @@ async fn main() {
                         "set" => {
                             for stream in db_clone.replica_streams.lock().await.iter_mut() {
                                 let res = stream.write(&command_vec).await;
-                                println!("COMMMAND! {:?}", command);
+                                println!("COMMMAND! {:?}, {:?}", command, command_vec);
                                 match res {
                                     Ok(r) => {
                                         println!("SUC");
