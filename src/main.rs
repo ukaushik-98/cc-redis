@@ -163,10 +163,10 @@ async fn main() {
                     };
 
                     let command: Vec<&str> = command_str.trim().split("\r\n").collect();
-                    println!("COMMMAND! {:?}", command);
-
+                    
                     match command[2].to_ascii_lowercase().as_str() {
                         "set" => {
+                            println!("COMMMAND! {:?}", command);
                             for stream in db_clone.replica_streams.lock().await.iter_mut() {
                                 stream.write(&command_vec).await;
                             }
