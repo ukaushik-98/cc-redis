@@ -29,7 +29,7 @@ struct RedisDB {
     status: Option<String>,
     replication_id: String,
     offset: String,
-    replica_streams: Arc<Mutex<Vec<Arc<TcpStream>>>>
+    replica_streams: Arc<tokio::sync::Mutex<Vec<TcpStream>>>
 }
 
 #[derive(Parser, Debug)]
@@ -57,7 +57,7 @@ async fn main() {
         status: args.replicaof.clone(),
         replication_id: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
         offset: "0".to_string(),
-        replica_streams: Arc::new(Mutex::new(Vec::new()))
+        replica_streams: Arc::new(tokio::sync::Mutex::new(Vec::new()))
     };
 
     let res = match &args.replicaof {
@@ -114,6 +114,7 @@ async fn main() {
                 };
 
                 tokio::spawn(async move {
+                    let mut command_vec = Vec::new();
                     loop {
                         let mut buf = Vec::new();
                         let mut buf_reader = BufReader::new(&mut stream);
@@ -122,26 +123,16 @@ async fn main() {
                             Err(_) => 0,
                         };
 
-                        let command = match std::str::from_utf8(&buf) {
+                        let command_str = match std::str::from_utf8(&buf) {
                             Ok(s) => s,
                             Err(_) => panic!("failed to parse input"),
                         };
 
-                        let command: Vec<&str> = command.trim().split("\r\n").collect();
-
+                        let command: Vec<&str> = command_str.trim().split("\r\n").collect();
                         println!("{:?}", command);
+                        
 
                         if read_stream == 0 {
-                            match command[2].to_ascii_lowercase().as_str() {
-                                "psync" => {
-                                    let mut file = File::open("src/rdb.txt").await.unwrap();
-                                    let mut file_buffer = vec![];
-                                    let _ = file.read_to_end(&mut file_buffer).await;
-                                    let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
-                                    let _ = stream.write(&[format!("${}\r\n", decoded_rdb.len()).as_bytes(), &decoded_rdb].concat()).await;
-                                },
-                                _ => {}
-                            }
                             println!("socket closed!");
                             break;
                         }
@@ -151,7 +142,38 @@ async fn main() {
                         println!("{}", response);
 
                         let _ = stream.write(response.as_bytes()).await;
+
+                        match command[2].to_ascii_lowercase().as_str() {
+                            "psync" => {
+                                let mut file = File::open("src/rdb.txt").await.unwrap();
+                                let mut file_buffer = vec![];
+                                let _ = file.read_to_end(&mut file_buffer).await;
+                                let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
+                                let _ = stream.write(&[format!("${}\r\n", decoded_rdb.len()).as_bytes(), &decoded_rdb].concat()).await;
+                                db_clone.replica_streams.lock().await.push(stream);
+                                break;
+                            },
+                            _ => {}
+                        }
+                        command_vec = buf;
                     }
+                    let command_str = match std::str::from_utf8(&command_vec) {
+                        Ok(s) => s,
+                        Err(_) => panic!("failed to parse input"),
+                    };
+
+                    let command: Vec<&str> = command_str.trim().split("\r\n").collect();
+                    println!("{:?}", command);
+
+                    match command[2].to_ascii_lowercase().as_str() {
+                        "set" => {
+                            for stream in db_clone.replica_streams.lock().await.iter_mut() {
+                                stream.write(&command_vec).await;
+                            }
+                        },
+                        _ => {}
+                    } 
+                    
                 });
             }
             Err(e) => {
