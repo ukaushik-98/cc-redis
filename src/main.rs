@@ -28,7 +28,8 @@ struct RedisDB {
     instance: Arc<Mutex<HashMap<String, RedisEntry>>>,
     status: Option<String>,
     replication_id: String,
-    offset: String
+    offset: String,
+    replica_streams: Arc<Mutex<Vec<Arc<TcpStream>>>>
 }
 
 #[derive(Parser, Debug)]
@@ -55,7 +56,8 @@ async fn main() {
         instance: Arc::new(Mutex::new(HashMap::new())),
         status: args.replicaof.clone(),
         replication_id: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
-        offset: "0".to_string()
+        offset: "0".to_string(),
+        replica_streams: Arc::new(Mutex::new(Vec::new()))
     };
 
     let res = match &args.replicaof {
@@ -93,58 +95,9 @@ async fn main() {
             let _ = socket.write_all(b"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n").await; 
             let res = socket.read_buf(&mut buf).await.unwrap();
             let output2 = String::from_utf8_lossy(&buf);
-            println!("response: {}", output2);
-
-            // let mut file = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
-            // println!("FILE: {}", file);
-            // let _ = socket.write(format!("${}\r\n{}", file.len(), file.to_string()).as_bytes()).await; 
+            println!("response: {}", output2); 
         },
-        None => {
-            // let host = "localhost:6380";
-            // println!("replica node - connecting to master {}", host);
-
-            // let mut buf = vec![];
-            // let mut socket = TcpStream::connect(&host).await.unwrap();
-            // println!("replica node - sending ping");
-            // let _ = socket.write_all(b"*1\r\n$4\r\nPING\r\n").await;
-            // let _ = socket.flush().await;
-
-            // let n = socket.read_buf(&mut buf).await.unwrap();
-            // let output = String::from_utf8_lossy(&buf);
-            // println!("response: {}", output);
-
-            // println!("replica node - sending listening port");
-            // buf.clear();
-            // let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n6380\r\n").await;
-            // let _ = socket.flush().await;
-            // let res = socket.read_buf(&mut buf).await.unwrap();
-            // let output1 = String::from_utf8_lossy(&buf);
-            // println!("response: {}", output1);
-
-            // println!("replica node - sending replica capabilities");
-            // buf.clear();
-            // let _ = socket.write_all(b"*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n").await; 
-            // let res = socket.read_buf(&mut buf).await.unwrap();
-            // let output2 = String::from_utf8_lossy(&buf);
-            // println!("response: {}", output2);
-
-            // println!("replica node - sending replica capabilities");
-            // buf.clear();
-            // let _ = socket.write_all(b"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n").await; 
-            // let res = socket.read_buf(&mut buf).await.unwrap();
-            // let output2 = String::from_utf8_lossy(&buf);
-            // println!("response: {}", output2);
-            
-            // let mut file = File::open("src/rdb.txt").await.unwrap();
-            // let mut file_buffer = vec![];
-            // let _ = file.read_to_end(&mut file_buffer).await;
-            // println!("FILE: {}", String::from_utf8_lossy(&file_buffer));    
-            // let _ = socket.write_all(&[format!("${}\r\n", file_buffer.len()).as_bytes(), &file_buffer].concat()).await;
-
-            // let mut file = "UkVESVMwMDEx+glyZWRpcy12ZXIFNy4yLjD6CnJlZGlzLWJpdHPAQPoFY3RpbWXCbQi8ZfoIdXNlZC1tZW3CsMQQAPoIYW9mLWJhc2XAAP/wbjv+wP9aog==";
-            // println!("FILE: {}", file);
-            // let _ = socket.write(format!("${}\r\n{}", file.len(), file.to_string()).as_bytes()).await; 
-        } 
+        None => {} 
     };
 
     loop {
@@ -156,7 +109,8 @@ async fn main() {
                     instance: db.instance.clone(),
                     status: args.replicaof.clone(),
                     replication_id: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
-                    offset: "0".to_string()
+                    offset: "0".to_string(),
+                    replica_streams: db.replica_streams.clone()
                 };
 
                 tokio::spawn(async move {
@@ -168,11 +122,6 @@ async fn main() {
                             Err(_) => 0,
                         };
 
-                        if read_stream == 0 {
-                            println!("socket closed!");
-                            break;
-                        }
-
                         let command = match std::str::from_utf8(&buf) {
                             Ok(s) => s,
                             Err(_) => panic!("failed to parse input"),
@@ -182,22 +131,26 @@ async fn main() {
 
                         println!("{:?}", command);
 
+                        if read_stream == 0 {
+                            match command[2].to_ascii_lowercase().as_str() {
+                                "psync" => {
+                                    let mut file = File::open("src/rdb.txt").await.unwrap();
+                                    let mut file_buffer = vec![];
+                                    let _ = file.read_to_end(&mut file_buffer).await;
+                                    let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
+                                    let _ = stream.write(&[format!("${}\r\n", decoded_rdb.len()).as_bytes(), &decoded_rdb].concat()).await;
+                                },
+                                _ => {}
+                            }
+                            println!("socket closed!");
+                            break;
+                        }
+
                         let response = parser(&command, &mut db_clone);
 
                         println!("{}", response);
 
                         let _ = stream.write(response.as_bytes()).await;
-
-                        match command[2].to_ascii_lowercase().as_str() {
-                            "psync" => {
-                                let mut file = File::open("src/rdb.txt").await.unwrap();
-                                let mut file_buffer = vec![];
-                                let _ = file.read_to_end(&mut file_buffer).await;
-                                let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
-                                let _ = stream.write(&[format!("${}\r\n", decoded_rdb.len()).as_bytes(), &decoded_rdb].concat()).await;
-                            },
-                            _ => {}
-                        }
                     }
                 });
             }
