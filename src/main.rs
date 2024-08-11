@@ -167,8 +167,8 @@ async fn main() {
                     match command[2].to_ascii_lowercase().as_str() {
                         "set" => {
                             for stream in db_clone.replica_streams.lock().await.iter_mut() {
-                                println!("COMMMAND! {:?}", command);
                                 let res = stream.write(&command_vec).await;
+                                println!("COMMMAND! {:?}", command);
                                 match res {
                                     Ok(r) => {
                                         println!("SUC");
