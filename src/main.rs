@@ -114,7 +114,6 @@ async fn main() {
                 };
 
                 tokio::spawn(async move {
-                    let mut command_vec = Vec::new();
                     loop {
                         let mut buf = Vec::new();
                         let mut buf_reader = BufReader::new(&mut stream);
@@ -153,35 +152,22 @@ async fn main() {
                                 db_clone.replica_streams.lock().await.push(stream);
                                 break;
                             },
-                            _ => {}
-                        }
-                        command_vec = buf;
-                    }
-                    let command_str = match std::str::from_utf8(&command_vec) {
-                        Ok(s) => s,
-                        Err(_) => panic!("failed to parse input"),
-                    };
-
-                    let command: Vec<&str> = command_str.trim().split("\r\n").collect();
-                    
-                    match command[2].to_ascii_lowercase().as_str() {
-                        "set" => {
-                            for stream in db_clone.replica_streams.lock().await.iter_mut() {
-                                let res = stream.write(&command_vec).await;
-                                println!("COMMMAND! {:?}, {:?}", command, command_vec);
-                                match res {
-                                    Ok(r) => {
-                                        println!("SUC");
-                                    },
-                                    Err(_) => {
-                                        println!("ERR");
-                                    },
+                            "set" => {
+                                for stream in db_clone.replica_streams.lock().await.iter_mut() {
+                                    let res = stream.write(&buf).await;
+                                    match res {
+                                        Ok(r) => {
+                                            println!("SUC");
+                                        },
+                                        Err(_) => {
+                                            println!("ERR");
+                                        },
+                                    }
                                 }
                             }
-                        },
-                        _ => {}
-                    } 
-                    
+                            _ => {}
+                        }
+                    }
                 });
             }
             Err(e) => {
