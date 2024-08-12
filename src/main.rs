@@ -236,13 +236,13 @@ async fn main() {
 }
 
 fn parser(command: &Vec<&str>, db: &mut RedisDB) -> String {
+    println!("command: {:?}", command);
     match command[2].to_ascii_lowercase().as_str() {
         "ping" => "+PONG".to_string(),
         "echo" => {
             format!("${}\r\n{}\r\n", command[4].len(), command[4])
         }
         "set" => {
-            println!("command: {:?}", command);
             let px = if command.len() == 11 {
                 command[10].parse().unwrap()
             } else {
