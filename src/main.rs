@@ -52,7 +52,7 @@ async fn main() {
 
     let listener = TcpListener::bind(format!("127.0.0.1:{}", args.port)).await.unwrap();
 
-    let db = RedisDB {
+    let mut db = RedisDB {
         instance: Arc::new(Mutex::new(HashMap::new())),
         status: args.replicaof.clone(),
         replication_id: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
@@ -138,11 +138,11 @@ async fn main() {
                     let command: Vec<&str> = command_str.trim().split("\r\n").collect();
                     println!("{:?} COMMAND_STR: {:?} COMMAND: {:?}", Instant::now(), command_str, command);
     
-                    let response = parser(&command, &mut db_clone);
+                    let response = parser_group(&command);
     
-                    println!("{}", response);
+                    println!("{:?}", response);
     
-                    let _ = socket.write(response.as_bytes()).await;
+                    let _ = socket.write(response.iter().map(|r| parser(r, &mut db_clone)).collect::<Vec<String>>().join("\r\n").as_bytes()).await;
                 }
             });
              
@@ -188,11 +188,11 @@ async fn main() {
                         let command: Vec<&str> = command_str.trim().split("\r\n").collect();
                         println!("{:?} COMMAND: {:?}", Instant::now(), command);
 
-                        let response = parser(&command, &mut db_clone);
-
-                        println!("{}", response);
-
-                        let _ = stream.write(response.as_bytes()).await;
+                        let response = parser_group(&command);
+    
+                        println!("{:?}", response);
+    
+                        let _ = stream.write(response.iter().map(|r| parser(r, &mut db_clone)).collect::<Vec<String>>().join("\r\n").as_bytes()).await;
 
                         match command[2].to_ascii_lowercase().as_str() {
                             "psync" => {
@@ -237,7 +237,26 @@ async fn main() {
     }
 }
 
-fn parser(command: &Vec<&str>, db: &mut RedisDB) -> String {
+fn parser_group(command: &Vec<&str>) -> Vec<Vec<String>> {
+    let mut sub_command = vec![command[0].to_string()];
+    let mut i = 1;
+    let mut response = vec![];
+
+    while i < command.len() {
+        if command[i].starts_with("*") {
+            response.push(sub_command.clone());
+            sub_command.clear();
+        }
+        sub_command.push(command[i].to_string());
+        i += 1;
+    }
+    if sub_command.len() > 0 {
+        response.push(sub_command);
+    }
+    response
+}
+
+fn parser(command: &Vec<String>, db: &mut RedisDB) -> String {
     println!("command: {:?}", command);
     match command[2].to_ascii_lowercase().as_str() {
         "ping" => "+PONG".to_string(),
@@ -269,7 +288,7 @@ fn parser(command: &Vec<&str>, db: &mut RedisDB) -> String {
         "get" => {
             let mut db_lock = db.instance.lock().unwrap();
             let value: String;
-            match db_lock.get(command[4]) {
+            match db_lock.get(&command[4]) {
                 Some(val) => {
                     println!("REDIS ENTRY: {:?}", val);
                     let expirey: i32 = val.expirey.try_into().unwrap();
@@ -278,7 +297,7 @@ fn parser(command: &Vec<&str>, db: &mut RedisDB) -> String {
                         && Instant::now() - val.stored
                             >= Duration::from_millis(expirey.try_into().unwrap())
                     {
-                        let _ = db_lock.remove(command[4]);
+                        let _ = db_lock.remove(&command[4]);
                         return "$-1\r\n".to_string();
                     }
                     value = val.value.clone()
