@@ -183,6 +183,8 @@ async fn main() {
                             continue;
                         }
 
+                        println!("{:?} COMMAND: {:?}", Instant::now(), command_str);
+
                         let command: Vec<&str> = command_str.trim().split("\r\n").collect();
                         println!("{:?} COMMAND: {:?}", Instant::now(), command);
 
