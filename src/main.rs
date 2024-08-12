@@ -265,7 +265,7 @@ fn parser(command: &Vec<String>, db: &mut RedisDB) -> String {
     match command[2].to_ascii_lowercase().as_str() {
         "ping" => "+PONG".to_string(),
         "echo" => {
-            format!("${}\r\n{}\r\n", command[4].len(), command[4])
+            format!("${}\r\n{}", command[4].len(), command[4])
         }
         "set" => {
             let px = if command.len() == 11 {
@@ -287,7 +287,7 @@ fn parser(command: &Vec<String>, db: &mut RedisDB) -> String {
                 .unwrap()
                 .insert(command[4].to_string(), entry);
 
-            "+OK\r\n".to_string()
+            "+OK".to_string()
         }
         "get" => {
             let mut db_lock = db.instance.lock().unwrap();
@@ -306,9 +306,9 @@ fn parser(command: &Vec<String>, db: &mut RedisDB) -> String {
                     }
                     value = val.value.clone()
                 }
-                None => return "$-1\r\n".to_string(),
+                None => return "$-1".to_string(),
             };
-            format!("${}\r\n{}\r\n", value.len(), value)
+            format!("${}\r\n{}", value.len(), value)
         },
         "info" => {
             let role = match &db.status {
@@ -320,13 +320,13 @@ fn parser(command: &Vec<String>, db: &mut RedisDB) -> String {
                 },
             };
             let value = format!("role:{}:master_replid:{}:master_repl_offset:{}", role, db.replication_id, db.offset);
-            format!("${}\r\n{}\r\n", value.len(), value)
+            format!("${}\r\n{}", value.len(), value)
         },
         "replconf" => {
-            "+OK\r\n".to_string()
+            "+OK".to_string()
         },
         "psync" => {
-            format!("+FULLRESYNC {} 0\r\n", db.replication_id)
+            format!("+FULLRESYNC {} 0", db.replication_id)
         },
         _ => panic!("unrecognized command"),
     }
