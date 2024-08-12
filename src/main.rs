@@ -115,6 +115,7 @@ async fn main() {
                 replica_streams: db.replica_streams.clone()
             };
 
+            println!("STARTING TO LISTEN TO MASTER");
             tokio::spawn(async move {
                 loop {
                     // let arc_stream = arc_stream.clone();
