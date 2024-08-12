@@ -290,7 +290,7 @@ fn parser(command: &Vec<String>, db: &mut RedisDB) -> String {
                             >= Duration::from_millis(expirey.try_into().unwrap())
                     {
                         let _ = db_lock.remove(&command[4]);
-                        return "$-1\r\n".to_string();
+                        return "$-1".to_string();
                     }
                     value = val.value.clone()
                 }
