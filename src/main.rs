@@ -29,7 +29,7 @@ struct RedisDB {
     status: Option<String>,
     replication_id: String,
     offset: String,
-    replica_streams: Arc<tokio::sync::Mutex<Vec<Arc<tokio::sync::Mutex<TcpStream>>>>>
+    replica_streams: Arc<tokio::sync::Mutex<Vec<TcpStream>>>
 }
 
 #[derive(Parser, Debug)]
@@ -95,7 +95,57 @@ async fn main() {
             let _ = socket.write_all(b"*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n").await; 
             let res = socket.read_buf(&mut buf).await.unwrap();
             let output2 = String::from_utf8_lossy(&buf);
-            println!("response: {}", output2); 
+            println!("response: {}", output2);
+
+            buf.clear();
+            let res = socket.read_buf(&mut buf).await.unwrap();
+            let output3 = String::from_utf8_lossy(&buf);
+            println!("response: {}", output3);
+
+            buf.clear();
+            let res = socket.read_buf(&mut buf).await.unwrap();
+            let output4 = String::from_utf8_lossy(&buf);
+            println!("response: {}", output4);
+
+            let mut db_clone = RedisDB {
+                instance: db.instance.clone(),
+                status: args.replicaof.clone(),
+                replication_id: "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
+                offset: "0".to_string(),
+                replica_streams: db.replica_streams.clone()
+            };
+
+            tokio::spawn(async move {
+                loop {
+                    // let arc_stream = arc_stream.clone();
+                    // let mut inner_stream = arc_stream.lock().await;
+                    let mut buf = Vec::new();
+                    let mut buf_reader = BufReader::new(&mut socket);
+                    let read_stream = match buf_reader.read_buf(&mut buf).await {
+                        Ok(val) => val,
+                        Err(_) => 0,
+                    };
+    
+                    let command_str = match std::str::from_utf8(&buf) {
+                        Ok(s) => s,
+                        Err(_) => panic!("failed to parse input"),
+                    };
+    
+                    if command_str == "" {
+                        continue;
+                    }
+    
+                    let command: Vec<&str> = command_str.trim().split("\r\n").collect();
+                    println!("{:?} COMMAND: {:?}", Instant::now(), command);
+    
+                    let response = parser(&command, &mut db_clone);
+    
+                    println!("{}", response);
+    
+                    let _ = socket.write(response.as_bytes()).await;
+                }
+            });
+             
         },
         None => {} 
     };
@@ -113,12 +163,12 @@ async fn main() {
                     replica_streams: db.replica_streams.clone()
                 };
                 tokio::spawn(async move {
-                    let arc_stream = Arc::new(tokio::sync::Mutex::new(stream));
+                    // let arc_stream = Arc::new(tokio::sync::Mutex::new(&mut stream));
                     loop {
-                        let arc_stream = arc_stream.clone();
+                        // let arc_stream = arc_stream.clone();
+                        // let mut inner_stream = arc_stream.lock().await;
                         let mut buf = Vec::new();
-                        let mut stream = arc_stream.lock().await;
-                        let mut buf_reader = BufReader::new(&mut *stream);
+                        let mut buf_reader = BufReader::new(&mut stream);
                         let read_stream = match buf_reader.read_buf(&mut buf).await {
                             Ok(val) => val,
                             Err(_) => 0,
@@ -134,13 +184,7 @@ async fn main() {
                         }
 
                         let command: Vec<&str> = command_str.trim().split("\r\n").collect();
-                        println!("{:?}", command);
-                        
-
-                        // if read_stream == 0 {
-                        //     println!("socket closed!");
-                        //     break;
-                        // }
+                        println!("{:?} COMMAND: {:?}", Instant::now(), command);
 
                         let response = parser(&command, &mut db_clone);
 
@@ -154,14 +198,20 @@ async fn main() {
                                 let mut file_buffer = vec![];
                                 let _ = file.read_to_end(&mut file_buffer).await;
                                 let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
-                                let psync_res_write = stream.write(&[format!("${}\r\n", decoded_rdb.len()).as_bytes(), &decoded_rdb].concat()).await.unwrap();
-                                println!("WRITE SUCEEDED: {}", psync_res_write);
-                                db_clone.replica_streams.lock().await.push(arc_stream.clone());
+                                // let test = stream.write_all(b"*1\r\n$4\r\nPING\r\n").await.unwrap();
+                                // println!("WROTE PING: {:?}", test);
+                                // stream.flush().await;
+                                // let test = stream.write_all(b"*1\r\n$4\r\nPING\r\n").await.unwrap();
+                                // println!("WROTE PING: {:?}", test);
+                                // stream.flush().await;
+                                let psync_res_write = stream.write_all(&[format!("${}\r\n", decoded_rdb.len()).as_bytes(), &decoded_rdb].concat()).await.unwrap();
+                                println!("WRITE SUCEEDED: {:?}", psync_res_write);
+                                db_clone.replica_streams.lock().await.push(stream);
+                                break;
                             },
                             "set" => {
                                 let mut streams = db_clone.replica_streams.lock().await;
                                 for stream in streams.iter_mut() {
-                                    let mut stream = stream.lock().await;
                                     let res = stream.write(&buf).await;
                                     match res {
                                         Ok(_) => println!("Write succeeded"),
