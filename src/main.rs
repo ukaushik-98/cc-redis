@@ -136,7 +136,7 @@ async fn main() {
                     }
     
                     let command: Vec<&str> = command_str.trim().split("\r\n").collect();
-                    println!("{:?} COMMAND: {:?}", Instant::now(), command);
+                    println!("{:?} COMMAND_STR: {:?} COMMAND: {:?}", Instant::now(), command_str, command);
     
                     let response = parser(&command, &mut db_clone);
     
