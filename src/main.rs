@@ -183,14 +183,11 @@ async fn main() {
                             continue;
                         }
 
-                        println!("{:?} COMMAND_STR: {:?}", Instant::now(), command_str);
+                        println!("{:?} COMMAND: {:?}", Instant::now(), command_str);
 
                         let command: Vec<&str> = command_str.trim().split("\r\n").collect();
-                        println!("{:?} COMMAND: {:?}", Instant::now(), command);
 
                         let response = parser_group(&command);
-    
-                        println!("{:?}", response);
 
                         let mut group_response = response.iter().map(|r| parser(r, &mut db_clone)).collect::<Vec<String>>();
                         group_response.push("".to_string());
@@ -204,14 +201,7 @@ async fn main() {
                                 let mut file_buffer = vec![];
                                 let _ = file.read_to_end(&mut file_buffer).await;
                                 let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
-                                // let test = stream.write_all(b"*1\r\n$4\r\nPING\r\n").await.unwrap();
-                                // println!("WROTE PING: {:?}", test);
-                                // stream.flush().await;
-                                // let test = stream.write_all(b"*1\r\n$4\r\nPING\r\n").await.unwrap();
-                                // println!("WROTE PING: {:?}", test);
-                                // stream.flush().await;
                                 let psync_res_write = stream.write_all(&[format!("${}\r\n", decoded_rdb.len()).as_bytes(), &decoded_rdb].concat()).await.unwrap();
-                                println!("WRITE SUCEEDED: {:?}", psync_res_write);
                                 db_clone.replica_streams.lock().await.push(stream);
                                 break;
                             },
@@ -294,9 +284,7 @@ fn parser(command: &Vec<String>, db: &mut RedisDB) -> String {
             let value: String;
             match db_lock.get(&command[4]) {
                 Some(val) => {
-                    println!("REDIS ENTRY: {:?}", val);
                     let expirey: i32 = val.expirey.try_into().unwrap();
-                    println!("EXPIREY: {}", expirey);
                     if expirey != -1
                         && Instant::now() - val.stored
                             >= Duration::from_millis(expirey.try_into().unwrap())
