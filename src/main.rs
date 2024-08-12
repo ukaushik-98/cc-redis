@@ -1,12 +1,12 @@
 use std::{
-    collections::HashMap, fmt::format, hash::Hash, io::Write, result, sync::{Arc, Mutex}, time::{self, Duration, Instant}
+    clone, collections::HashMap, fmt::format, hash::Hash, io::Write, result, sync::{Arc, Mutex}, time::{self, Duration, Instant}
 };
 
 use bytes::{Buf, BufMut};
 use clap::Parser;
 use reqwest::Client;
 use tokio::{
-    fs::File, io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader}, net::{TcpListener, TcpStream}, stream
+    fs::File, io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader}, net::{tcp::WriteHalf, TcpListener, TcpStream}, stream
 };
 use base64::prelude::*;
 
@@ -29,7 +29,7 @@ struct RedisDB {
     status: Option<String>,
     replication_id: String,
     offset: String,
-    replica_streams: Arc<tokio::sync::Mutex<Vec<TcpStream>>>
+    replica_streams: Arc<tokio::sync::Mutex<Vec<Arc<tokio::sync::Mutex<TcpStream>>>>>
 }
 
 #[derive(Parser, Debug)]
@@ -112,11 +112,13 @@ async fn main() {
                     offset: "0".to_string(),
                     replica_streams: db.replica_streams.clone()
                 };
-
                 tokio::spawn(async move {
+                    let arc_stream = Arc::new(tokio::sync::Mutex::new(stream));
                     loop {
+                        let arc_stream = arc_stream.clone();
                         let mut buf = Vec::new();
-                        let mut buf_reader = BufReader::new(&mut stream);
+                        let mut stream = arc_stream.lock().await;
+                        let mut buf_reader = BufReader::new(&mut *stream);
                         let read_stream = match buf_reader.read_buf(&mut buf).await {
                             Ok(val) => val,
                             Err(_) => 0,
@@ -127,14 +129,18 @@ async fn main() {
                             Err(_) => panic!("failed to parse input"),
                         };
 
+                        if command_str == "" {
+                            continue;
+                        }
+
                         let command: Vec<&str> = command_str.trim().split("\r\n").collect();
                         println!("{:?}", command);
                         
 
-                        if read_stream == 0 {
-                            println!("socket closed!");
-                            break;
-                        }
+                        // if read_stream == 0 {
+                        //     println!("socket closed!");
+                        //     break;
+                        // }
 
                         let response = parser(&command, &mut db_clone);
 
@@ -148,20 +154,22 @@ async fn main() {
                                 let mut file_buffer = vec![];
                                 let _ = file.read_to_end(&mut file_buffer).await;
                                 let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
-                                let _ = stream.write(&[format!("${}\r\n", decoded_rdb.len()).as_bytes(), &decoded_rdb].concat()).await;
-                                db_clone.replica_streams.lock().await.push(stream);
-                                break;
+                                let psync_res_write = stream.write(&[format!("${}\r\n", decoded_rdb.len()).as_bytes(), &decoded_rdb].concat()).await.unwrap();
+                                println!("WRITE SUCEEDED: {}", psync_res_write);
+                                db_clone.replica_streams.lock().await.push(arc_stream.clone());
                             },
                             "set" => {
-                                for stream in db_clone.replica_streams.lock().await.iter_mut() {
+                                let mut streams = db_clone.replica_streams.lock().await;
+                                for stream in streams.iter_mut() {
+                                    let mut stream = stream.lock().await;
                                     let res = stream.write(&buf).await;
                                     match res {
-                                        Ok(r) => {
-                                            println!("SUC");
-                                        },
-                                        Err(_) => {
-                                            println!("ERR");
-                                        },
+                                        Ok(_) => println!("Write succeeded"),
+                                        Err(e) if e.kind() == std::io::ErrorKind::BrokenPipe => {
+                                            println!("Broken pipe, removing stream");
+                                            // Code to remove the broken stream from your list of streams
+                                        }
+                                        Err(e) => println!("An unexpected error occurred: {}", e),
                                     }
                                 }
                             }
@@ -179,7 +187,7 @@ async fn main() {
 
 fn parser(command: &Vec<&str>, db: &mut RedisDB) -> String {
     match command[2].to_ascii_lowercase().as_str() {
-        "ping" => "+PONG\r\n".to_string(),
+        "ping" => "+PONG".to_string(),
         "echo" => {
             format!("${}\r\n{}\r\n", command[4].len(), command[4])
         }
