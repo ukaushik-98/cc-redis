@@ -191,8 +191,12 @@ async fn main() {
                         let response = parser_group(&command);
     
                         println!("{:?}", response);
+
+                        let mut group_response = response.iter().map(|r| parser(r, &mut db_clone)).collect::<Vec<String>>();
+                        group_response.push("".to_string());
+                        println!("{:?}", group_response);                    
     
-                        let _ = stream.write(response.iter().map(|r| parser(r, &mut db_clone)).collect::<Vec<String>>().join("\r\n").as_bytes()).await;
+                        let _ = stream.write(group_response.join("\r\n").as_bytes()).await;
 
                         match command[2].to_ascii_lowercase().as_str() {
                             "psync" => {
