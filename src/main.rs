@@ -236,7 +236,7 @@ fn parser_group(command: &Vec<&str>) -> Vec<Vec<String>> {
     let mut response = vec![];
 
     while i < command.len() {
-        if command[i].starts_with("*") {
+        if command[i].len() > 1 && command[i].starts_with("*") {
             response.push(sub_command.clone());
             sub_command.clear();
         }
