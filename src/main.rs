@@ -100,7 +100,7 @@ async fn main() {
             buf.clear();
             let res = socket.read_buf(&mut buf).await.unwrap();
             let output3 = String::from_utf8_lossy(&buf);
-            println!("res: {}, response: {}", output3);
+            println!("res: {}, response: {}", res, output3);
 
             buf.clear();
             let res = socket.read_buf(&mut buf).await.unwrap();
