@@ -105,7 +105,7 @@ async fn main() {
             buf.clear();
             let res = socket.read_buf(&mut buf).await.unwrap();
             let output4 = String::from_utf8_lossy(&buf);
-            println!("response: {}", output4);
+            println!("res: {}, response: {}", res, output4);
 
             let mut db_clone = RedisDB {
                 instance: db.instance.clone(),
