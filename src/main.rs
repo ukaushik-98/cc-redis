@@ -97,15 +97,15 @@ async fn main() {
             let output2 = String::from_utf8_lossy(&buf);
             println!("response: {}", output2);
 
-            buf.clear();
-            let res = socket.read_buf(&mut buf).await.unwrap();
-            let output3 = String::from_utf8_lossy(&buf);
-            println!("res: {}, response: {}", res, output3);
+            // buf.clear();
+            // let res = socket.read_buf(&mut buf).await.unwrap();
+            // let output3 = String::from_utf8_lossy(&buf);
+            // println!("res: {}, response: {}", res, output3);
 
-            buf.clear();
-            let res = socket.read_buf(&mut buf).await.unwrap();
-            let output4 = String::from_utf8_lossy(&buf);
-            println!("res: {}, response: {}", res, output4);
+            // buf.clear();
+            // let res = socket.read_buf(&mut buf).await.unwrap();
+            // let output4 = String::from_utf8_lossy(&buf);
+            // println!("res: {}, response: {}", res, output4);
 
             let mut db_clone = RedisDB {
                 instance: db.instance.clone(),
@@ -196,13 +196,13 @@ async fn main() {
 
                         match command[2].to_ascii_lowercase().as_str() {
                             "psync" => {
-                                let mut file = File::open("src/rdb.txt").await.unwrap();
-                                let mut file_buffer = vec![];
-                                let _ = file.read_to_end(&mut file_buffer).await;
-                                let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
-                                let psync_res_write = stream.write_all(&[format!("${}\r\n", decoded_rdb.len()).as_bytes(), &decoded_rdb].concat()).await.unwrap();
-                                db_clone.replica_streams.lock().await.push(stream);
-                                break;
+                                // let mut file = File::open("src/rdb.txt").await.unwrap();
+                                // let mut file_buffer = vec![];
+                                // let _ = file.read_to_end(&mut file_buffer).await;
+                                // let decoded_rdb = &BASE64_STANDARD.decode(&file_buffer).unwrap();
+                                // let psync_res_write = stream.write_all(&[format!("${}\r\n", decoded_rdb.len()).as_bytes(), &decoded_rdb].concat()).await.unwrap();
+                                // db_clone.replica_streams.lock().await.push(stream);
+                                // break;
                             },
                             "set" => {
                                 let mut streams = db_clone.replica_streams.lock().await;
