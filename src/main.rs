@@ -310,7 +310,14 @@ fn parser(command: &Vec<String>, db: &mut RedisDB) -> String {
             format!("${}\r\n{}", value.len(), value)
         },
         "replconf" => {
-            "+OK".to_string()
+            match &db.status {
+                Some(_) => {
+                    return "*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$1\r\n0".to_string()
+                },
+                None => {
+                    return "+OK".to_string()
+                },
+            };
         },
         "psync" => {
             format!("+FULLRESYNC {} 0", db.replication_id)
