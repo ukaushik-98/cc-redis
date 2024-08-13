@@ -100,12 +100,12 @@ async fn main() {
             buf.clear();
             let res = socket.read_buf(&mut buf).await.unwrap();
             let output3 = String::from_utf8_lossy(&buf);
-            println!("response: {}", output3);
+            println!("res: {}, response: {}", output3);
 
-            // buf.clear();
-            // let res = socket.read_buf(&mut buf).await.unwrap();
-            // let output4 = String::from_utf8_lossy(&buf);
-            // println!("res: {}, response: {}", res, output4);
+            buf.clear();
+            let res = socket.read_buf(&mut buf).await.unwrap();
+            let output4 = String::from_utf8_lossy(&buf);
+            println!("res: {}, response: {}", res, output4);
 
             let mut db_clone = RedisDB {
                 instance: db.instance.clone(),
@@ -118,8 +118,6 @@ async fn main() {
             println!("STARTING TO LISTEN TO MASTER");
             tokio::spawn(async move {
                 loop {
-                    // let arc_stream = arc_stream.clone();
-                    // let mut inner_stream = arc_stream.lock().await;
                     let mut buf = Vec::new();
                     let mut buf_reader = BufReader::new(&mut socket);
                     let read_stream = match buf_reader.read_buf(&mut buf).await {
